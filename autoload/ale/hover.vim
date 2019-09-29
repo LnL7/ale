@@ -99,7 +99,14 @@ function! ale#hover#HandleLSPResponse(conn_id, response) abort
                 \&& ale#Var(l:options.buffer, 'set_balloons')
                     call balloon_show(l:str)
                 else
-                    call ale#util#ShowMessage(l:str)
+                    if get(l:options, 'show_signature', 0)
+                        let l:identifier = expand("<cword>")
+                        let l:str = substitute(l:str, "`", "", "g")
+                        let l:str = filter(filter(split(l:str, "\n"), 'v:val !~ "^> "'), 'v:val =~ l:identifier')[0]
+                        call ale#cursor#TruncatedEcho(l:str)
+                    else
+                        call ale#util#ShowMessage(l:str)
+                    endif
                 endif
             endif
         endif
@@ -146,6 +153,7 @@ function! s:OnReady(line, column, opt, linter, lsp_details) abort
     \   'column': l:column,
     \   'hover_from_balloonexpr': get(a:opt, 'called_from_balloonexpr', 0),
     \   'show_documentation': get(a:opt, 'show_documentation', 0),
+    \   'show_signature': get(a:opt, 'show_signature', 0),
     \}
 endfunction
 
@@ -184,6 +192,15 @@ function! ale#hover#ShowDocumentationAtCursor() abort
     let l:buffer = bufnr('')
     let l:pos = getpos('.')
     let l:options = {'show_documentation': 1}
+
+    call ale#hover#Show(l:buffer, l:pos[1], l:pos[2], l:options)
+endfunction
+
+" This function implements the :ALESignature command.
+function! ale#hover#ShowSignatureAtCursor() abort
+    let l:buffer = bufnr('')
+    let l:pos = getpos('.')
+    let l:options = {'show_signature': 1}
 
     call ale#hover#Show(l:buffer, l:pos[1], l:pos[2], l:options)
 endfunction
